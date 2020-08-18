@@ -71,6 +71,7 @@ export let colors = ['#7fc97f', '#386cb0', '#e7298a', '#ff9900'];
 export class Dendrogram extends Drawer{
   constructor(){
     super();
+
     this.initDendrogram()
   }
 
@@ -193,204 +194,13 @@ export class Dendrogram extends Drawer{
  */
 
 
-/**
- * Collapse function - only show the active level and one sub level
- */
-function collapse(d) {
-    if (d.children && d.depth <= hierarchyLevels['h' + id]) {
-        d._children = d.children;
-        d._children.forEach(collapse);
-    } else {
-        d.children = null;
-    }
-}
 
 /**
  * Draw the all hierarchies in the spatial view
  * add a group with the ids of the animals in it to the view
  * with path child elements
  */
-export function drawHierarchy() {
-    // id of the hierarchy e.g. [1,5,3]
-    let hierarchyIds = Object.keys(networkHierarchy).map(function(x) {
-        return x.replace('h', '');
-    });
-    //  The clustering in an 2D array with which animal id belongs to which group
-    let hierarchyVertices = [];
 
-    // iterate over the hierarchy data to get the hierarchy animal ids per clustering and grouping
-    for (let i = 0; i < hierarchyIds.length; i++) {
-        let treeData = networkHierarchy['h' + hierarchyIds[i]][indexTime];
-        let nodes = d3.hierarchy(treeData, function(d) {
-            return d.children;
-        });
-
-        nodes = treemap(nodes);
-        let root = nodes['children'][0];
-        if (showNetworkHierarchy === hierarchyIds[i]) {
-            networkHierarchyIds = getHierarchyLevel(root, hierarchyIds[i]);
-        }
-        // add the vertices into the array
-        hierarchyVertices.push(getHierarchyVertices(getHierarchyLevel(root, hierarchyIds[i])));
-    }
-
-    // if more than 2 hierarchies are drawn
-    if (hierarchyVertices.length > 0) {
-        // union the list of polygons to one polygon
-        // for (let i = 0; i < hierarchyIds.length; i++) {
-        //     hierarchyVertices[i] = unionPolygons(hierarchyVertices[i]);
-        // }
-
-        // transform and calculate the intersection polygons of the n hierarchies
-        // if (setOperation === 'intersection') {
-        //     // temp solution of two intersections
-        //     let tmpIntersection = hierarchyVertices[0];
-        //     // iterate over the hierarchies and intersect all of them
-        //     for (let i = 1; i < hierarchyVertices.length; i++) {
-        //         // intersection
-        //         tmpIntersection = PolyBool.intersect({
-        //             regions: tmpIntersection, // list of regions
-        //             inverted: false // is this polygon inverted?
-        //         }, {
-        //             regions: hierarchyVertices[i],
-        //             inverted: false
-        //         });
-        //         // convert it again
-        //         tmpIntersection = tmpIntersection['regions'];
-        //     }
-        //
-        //     // result
-        //     hierarchyVertices = [tmpIntersection];
-        // }
-        // // transform and calculate the symmetric difference polygons of the n hierarchies
-        // else if (setOperation === 'sym-difference') {
-        //     // xor = Union of all hierarchies - intersection of all hierarchies
-        //     // temp solution of two intersections
-        //     let tmpIntersection = hierarchyVertices[0];
-        //     // iterate over the hierarchies and intersect all of them
-        //     for (let i = 1; i < hierarchyVertices.length; i++) {
-        //         // intersection
-        //         tmpIntersection = PolyBool.intersect({
-        //             regions: tmpIntersection, // list of regions
-        //             inverted: false // is this polygon inverted?
-        //         }, {
-        //             regions: hierarchyVertices[i],
-        //             inverted: false
-        //         });
-        //         // convert it again
-        //         tmpIntersection = tmpIntersection['regions'];
-        //     }
-        //     // intersection result
-        //     let intersectionHierarchyPolygons = tmpIntersection;
-        //
-        //     // union
-        //     let tmpUnion = hierarchyVertices[0];
-        //     // iterate over the hierarchies and intersect all of them
-        //     for (let i = 1; i < hierarchyVertices.length; i++) {
-        //         // intersection
-        //         tmpUnion = PolyBool.union({
-        //             regions: tmpUnion, // list of regions
-        //             inverted: false // is this polygon inverted?
-        //         }, {
-        //             regions: hierarchyVertices[i],
-        //             inverted: false
-        //         });
-        //         // convert it again
-        //         tmpUnion = tmpUnion['regions'];
-        //     }
-        //     let unionHierarchyPolygons = tmpUnion;
-        //
-        //
-        //     // symmetric difference
-        //     let tmpDifference = PolyBool.xor({
-        //         regions: unionHierarchyPolygons, // list of regions
-        //         inverted: false // is this polygon inverted?
-        //     }, {
-        //         regions: intersectionHierarchyPolygons,
-        //         inverted: false
-        //     });
-        //     // convert it again
-        //     tmpDifference = tmpDifference['regions'];
-        //     // result
-        //     hierarchyVertices = [tmpDifference];
-        // }
-    }
-
-    // DATA Join
-    let hierarchies = spatialView
-        .selectAll('g.hierarchy-group')
-        .data(hierarchyVertices);
-
-    // ENTER the groups - adds a specific id and color
-    hierarchies
-        .enter()
-        .append('g')
-        .attr('class', function(d, i) {
-            if (setOperation === 'intersection') {
-                return 'hierarchy-group intersection';
-            } else if (setOperation === 'sym-difference') {
-                return 'hierarchy-group sym-difference';
-            } else {
-                return 'hierarchy-group h' + hierarchyIds[i];
-            }
-        })
-        .style('fill', function(d, i) {
-            return hierarchyColors['h' + hierarchyIds[i]];
-        })
-        .attr('stroke', function(d, i) {
-            return hierarchyColors['h' + hierarchyIds[i]];
-        })
-        .moveToBack();
-
-    // UPDATE - the class needed for intersection and symmetric difference
-    hierarchies.attr('class', function(d, i) {
-        if (setOperation === 'intersection') {
-            return 'hierarchy-group intersection';
-        } else if (setOperation === 'sym-difference') {
-            return 'hierarchy-group sym-difference';
-        } else {
-            return 'hierarchy-group h' + hierarchyIds[i];
-        }
-    });
-
-    // EXIT
-    hierarchies.exit()
-        .remove();
-
-    // Hierachy hulls added to the spatial view - get the points for each animal in the
-    // spatial view so that a convex hull can be calculated
-    let hieraryHulls = hierarchies.selectAll('path.hierarchy-hull-path')
-        .data(function(d) {
-            return d;
-        });
-
-    // ENTER and calculate the convex hull
-    hieraryHulls
-        .enter()
-        .append('path')
-        // .attr('id', function(d) {
-        //     return 'hp' + d.join('').replace(/,/g, '');
-        // })
-        .attr('class', 'hierarchy-hull-path')
-        .attr('d', function(d) {
-            // return drawLine(d);
-            return 'M' + d.join('L') + 'Z';
-        });
-
-    // UPDATE the convex hull
-    hieraryHulls
-        .attr('d', function(d) {
-            // return drawLine(d);
-            return 'M' + d.join('L') + 'Z';
-        });
-    // .attr('id', function(d) {
-    // return 'hp' + d.join('').replace(/,/g, '');
-    // });
-    // EXIT
-    hieraryHulls.exit()
-        .remove();
-
-}
 
 /**
  * Union multiple polygons together - needed or else there will be holes in the intersections
@@ -442,7 +252,7 @@ function click(d) {
  * @param {object} root - Root of the treemap
  * @param {number} hiearchy - Number of hierarchy from [0-3]
  */
-function getHierarchyLevel(root, hierarchy) {
+export function getHierarchyLevel(root, hierarchy) {
     let result = [];
     let level = hierarchyLevels['h' + hierarchy];
 

@@ -9,7 +9,8 @@ import {
     datasetMetadata,
     setNetworkData,
     setHierarchyData,
-    dataSetPercentile
+    dataSetPercentile,
+    networkHierarchy
 } from '../explore.js';
 
 import {
@@ -17,9 +18,9 @@ import {
     networkAuto,
     setNetworLimit,
     networkLimit,
-    networkHierarchy,
-    setnetworkColor
-    // showNetworkHierarchy,
+    //networkHierarchy,
+    setnetworkColor,
+    showNetworkHierarchy,
     // networkID,
     // networkBackground,
     // networkBackgroundLimit
@@ -63,7 +64,6 @@ import {
 import {
     //updateDendrogram,
     setHierarchyLevel,
-    drawHierarchy,
     initDendrogramLegend,
     //initDendrogram,
     // networkHierarchyIds,
@@ -72,6 +72,8 @@ import {
     removeHierarchyButton,
     maxNumberHierarchies,
     addHierarchyButton,
+    getHierarchyVertices,
+    getHierarchyLevel,
     Dendrogram
 } from '../hierarchy.js';
 
@@ -368,9 +370,115 @@ export class Drawer {
        legendText.exit()
            .remove();
    }
+   drawHierarchy() {
+
+     let margin = 20,
+         width = 5000,
+         height = 5000;
+    let treemap = d3.tree() //d3.cluster()
+             .size([(height - 10 * margin), (width - 10 * margin)]);
+       // id of the hierarchy e.g. [1,5,3]
+       let hierarchyIds = Object.keys(networkHierarchy).map(function(x) {
+           return x.replace('h', '');
+       });
+       //  The clustering in an 2D array with which animal id belongs to which group
+       let hierarchyVertices = [];
+
+       // iterate over the hierarchy data to get the hierarchy animal ids per clustering and grouping
+       for (let i = 0; i < hierarchyIds.length; i++) {
+           let treeData = networkHierarchy['h' + hierarchyIds[i]][this.indexTime];
+           let nodes = d3.hierarchy(treeData, function(d) {
+               return d.children;
+           });
+
+           nodes = treemap(nodes);
+           let root = nodes['children'][0];
+           if (showNetworkHierarchy === hierarchyIds[i]) {
+               networkHierarchyIds = getHierarchyLevel(root, hierarchyIds[i]);
+           }
+           // add the vertices into the array
+           hierarchyVertices.push(getHierarchyVertices(getHierarchyLevel(root, hierarchyIds[i])));
+       }
+
+
+       // DATA Join
+       let hierarchies = spatialView
+           .selectAll('g.hierarchy-group')
+           .data(hierarchyVertices);
+
+       // ENTER the groups - adds a specific id and color
+       hierarchies
+           .enter()
+           .append('g')
+           .attr('class', function(d, i) {
+               if (setOperation === 'intersection') {
+                   return 'hierarchy-group intersection';
+               } else if (setOperation === 'sym-difference') {
+                   return 'hierarchy-group sym-difference';
+               } else {
+                   return 'hierarchy-group h' + hierarchyIds[i];
+               }
+           })
+           .style('fill', function(d, i) {
+               return hierarchyColors['h' + hierarchyIds[i]];
+           })
+           .attr('stroke', function(d, i) {
+               return hierarchyColors['h' + hierarchyIds[i]];
+           })
+           .moveToBack();
+
+       // UPDATE - the class needed for intersection and symmetric difference
+       hierarchies.attr('class', function(d, i) {
+           if (setOperation === 'intersection') {
+               return 'hierarchy-group intersection';
+           } else if (setOperation === 'sym-difference') {
+               return 'hierarchy-group sym-difference';
+           } else {
+               return 'hierarchy-group h' + hierarchyIds[i];
+           }
+       });
+
+       // EXIT
+       hierarchies.exit()
+           .remove();
+
+       // Hierachy hulls added to the spatial view - get the points for each animal in the
+       // spatial view so that a convex hull can be calculated
+       let hieraryHulls = hierarchies.selectAll('path.hierarchy-hull-path')
+           .data(function(d) {
+               return d;
+           });
+
+       // ENTER and calculate the convex hull
+       hieraryHulls
+           .enter()
+           .append('path')
+           // .attr('id', function(d) {
+           //     return 'hp' + d.join('').replace(/,/g, '');
+           // })
+           .attr('class', 'hierarchy-hull-path')
+           .attr('d', function(d) {
+               // return drawLine(d);
+               return 'M' + d.join('L') + 'Z';
+           });
+
+       // UPDATE the convex hull
+       hieraryHulls
+           .attr('d', function(d) {
+               // return drawLine(d);
+               return 'M' + d.join('L') + 'Z';
+           });
+       // .attr('id', function(d) {
+       // return 'hp' + d.join('').replace(/,/g, '');
+       // });
+       // EXIT
+       hieraryHulls.exit()
+           .remove();
+
+   }
    drawDendrogram() {
        // get the active dendrogram
-       //id = $('.show-dendrogram.btn-primary').attr('data');
+       this.id = $('.show-dendrogram.btn-primary').attr('data');
        // if data is avaiable draw hierarchy clusters and a button is active selcted
        //console.log('tries draw');
        console.log(networkHierarchy);
@@ -565,7 +673,7 @@ export class Drawer {
 
        if (!$.isEmptyObject(networkHierarchy)) {
            // draw the hierarchy in spatial view
-           drawHierarchy();
+           this.drawHierarchy();
        }
    }
    draw() {
@@ -3266,6 +3374,22 @@ export function setActiveScale(value) {
 export function setMedoidAnimal(value) {
     medoidAnimal = value;
 }
+
+/**
+ * Collapse function - only show the active level and one sub level
+ */
+function collapse(d) {
+    if (d.children && d.depth <= hierarchyLevels['h' + id]) {
+        d._children = d.children;
+        d._children.forEach(collapse);
+    } else {
+        d.children = null;
+    }
+}
+
+
+
+
 
 /**
  * Set the selected and highlighted animals
