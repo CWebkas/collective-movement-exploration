@@ -140,7 +140,7 @@ export class Dendrogram extends Drawer{
                       //this applys the changes
                       this.decIndexTime();
                       this.draw();
-                      this.drawDendrogram();
+                      //this.drawDendrogram();
                   }
               }
           });

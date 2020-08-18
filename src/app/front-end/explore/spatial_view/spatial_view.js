@@ -61,10 +61,11 @@ import {
 } from './legend.js';
 
 import {
-    updateDendrogram,
+    //updateDendrogram,
     setHierarchyLevel,
     drawHierarchy,
     initDendrogramLegend,
+    //initDendrogram,
     // networkHierarchyIds,
     // sethierarchyGroupStdev,
     resethierarchyGroupStdev,
@@ -367,7 +368,206 @@ export class Drawer {
        legendText.exit()
            .remove();
    }
+   drawDendrogram() {
+       // get the active dendrogram
+       //id = $('.show-dendrogram.btn-primary').attr('data');
+       // if data is avaiable draw hierarchy clusters and a button is active selcted
+       //console.log('tries draw');
+       console.log(networkHierarchy);
+       if (!$.isEmptyObject(networkHierarchy) && this.id) {
+           console.log('draws');
+           // get the data and transform it
+           let treeData = networkHierarchy['h' + this.id][this.indexTime];
+           let nodes = d3.hierarchy(treeData, function(d) {
+               return d.children;
+           });
+           // skip the root node
+           nodes = nodes.children[0];
+           // collapse the tree
+           nodes.children.forEach(collapse);
 
+           // maps the node data to the tree layout
+           nodes = treemap(nodes);
+           console.log(nodes);
+
+           // hide if no network is choosen
+           if ($('.show-dendrogram.btn-primary').length) {
+
+               // set the new slider max
+               $('#dendrogram-panel-level-slider')
+                   .slider('option', 'max', (nodes['height'] - 1))
+                   .slider('value', hierarchyLevels['h' + this.id]);
+
+               // DATA JOIN - links (edges)
+               let link = this.zoomGroup
+                   .selectAll('path.link')
+                   .data(nodes.descendants().slice(1));
+
+               // ENTER
+               link
+                   .enter()
+                   .append('path')
+                   .attr('class', 'link')
+                   .attr('d', diagonalLines);
+
+               // Transition links to their new position.
+               link
+                   .attr('d', diagonalLines);
+
+               // EXIT
+               link.exit()
+                   .remove();
+
+               // DATA JOIN - nodes
+               // adds each node as a group
+               let node = this.zoomGroup
+                   .selectAll('.node')
+                   .data(nodes.descendants());
+
+               // add the groups to the dendgrogram
+               var nodeEnter = node.enter()
+                   .append('g')
+                   .attr('class', function(d) {
+                       return 'node' +
+                           (d.children ? ' node--internal' : ' node--leaf');
+                   })
+                   .attr('transform', function(d) {
+                       return 'translate(' + d.x + ',' + d.y + ')';
+                   });
+
+               // ENTER - append for each group a node (circle)
+               // with highlighting for the active choosen level
+               nodeEnter.append('circle')
+                   .attr('r', (d)=>{
+                       if (d['depth'] === hierarchyLevels['h' + this.id]) {
+                           return 40 + d.data.name.length;
+                       } else {
+                           return 20 + d.data.name.length;
+                       }
+                   })
+                   .attr('class', (d)=>{
+                       if (d['depth'] === hierarchyLevels['h' + this.id]) {
+                           return 'active-level';
+                       }
+                   })
+                   .attr('id', (d)=>{
+                       return 'h' + d['data']['name'].toString().hashCode();
+                   })
+                   // TODO find a nice function for the on click method
+                   .on('click', click)
+                   .on('mouseover', function(d) {
+                       // tooltip position and text
+                       tooltipDiv
+                           .style('left', (d3.event.pageX + 5) + 'px')
+                           .style('top', (d3.event.pageY + 5) + 'px')
+                           .style('opacity', 1);
+                       tooltipDiv.select('.tooltip-span').html(d['data']['name'].toString());
+                       // add highlight in the spatial view
+                       // the undion of the paths makes this complicated
+                       addHighlightSpatialView(d['data']['name']);
+                   })
+                   .on('mouseout', function() {
+                       tooltipDiv.transition()
+                           .duration(500)
+                           .style('opacity', 0);
+                       // remove highlight in the spatial view
+                       removeHighlightSpatialView();
+                   });
+
+               // add the text - # number of animals in the cluster
+               nodeEnter.append('text')
+                   .attr('class', 'dendrogram-text')
+                   .attr('x', 150)
+                   .attr('y', -150)
+                   .text((d)=>{
+                       return d.data.name.length;
+                   });
+
+               // UPDATE -- update the groups
+               nodeEnter
+                   .attr('transform', (d)=>{
+                       return 'translate(' + d.x + ',' + d.y + ')';
+                   });
+
+               // updae the node and circles
+               // with active-level function to highlight which level is chosen
+               node
+                   .attr('transform', (d)=>{
+                       return 'translate(' + d.x + ',' + d.y + ')';
+                   })
+                   .select('circle')
+                   .attr('r', (d)=>{
+                       if (d['depth'] === hierarchyLevels['h' +this.id]) {
+                           return 40 + d.data.name.length;
+                       } else {
+                           return 20 + d.data.name.length;
+                       }
+                   })
+                   .attr('class', (d)=> {
+                       if (d['depth'] === hierarchyLevels['h' +this.id]) {
+                           // console.log('active-level');
+                           // console.log(('h' + d['data']['name'].toString().hashCode()));
+                           return 'active-level';
+                       } else {
+                           return '';
+                       }
+                   })
+                   .attr('id', (d)=>{
+                       return 'h' + d['data']['name'].toString().hashCode();
+                   });
+
+               // update the text of number of entities
+               node.select('text')
+                   .text((d)=>{
+                       return d.data.name.length;
+                   });
+
+               // EXIT
+               node.exit()
+                   .remove();
+
+               // color the dendrogram nodes using the standardDeviation in the cluster
+               if (Object.keys(hierarchyGroupStdev).length) {
+                   // show the legend for the coloring
+                   // console.log(hierarchyGroupStdev);
+                   // TODO legend here
+                   // console.log('JUMPS HERE');
+                   if ($('#dendrogram-legend').css('display') == 'none') {
+                       $('#dendrogram-legend').show();
+                   }
+                   // IMPORTANT - async problems
+                   // TODO solve this - very slow
+                   setTimeout(()=>{
+                       node.select('circle')
+                           .style('fill', function(d) {
+                               // console.log(hierarchyGroupStdev);
+                               // console.log(('h' + d['data']['name'].toString().hashCode()));
+                               // console.log(('h' + d['data']['name'].toString().hashCode()) in hierarchyGroupStdev)
+                               // color the nodes by calculating the standardDeviation
+                               // for each cluster
+                               // only active is show in cluster is choosen
+                               if (('h' + d['data']['name'].toString().hashCode()) in hierarchyGroupStdev) {
+                                   // console.log('hello');
+                                   // console.log(standardDeviation(hierarchyGroupStdev[('h' + d['data']['name'].toString().hashCode())]));
+                                   return standardDeviationColorScale(standardDeviation(hierarchyGroupStdev[('h' + d['data']['name'].toString().hashCode())]));
+                               } else if (d['depth'] !== hierarchyLevels['h' +this.id]) {
+                                   return '';
+                               } else {
+                                   return '#000';
+                               }
+                           });
+                   }, 250);
+               } else if ($('#dendrogram-legend').css('display') !== 'none') {
+                   $('#dendrogram-legend').hide();
+               }
+           }
+       }
+
+       if (!$.isEmptyObject(networkHierarchy)) {
+           // draw the hierarchy in spatial view
+           drawHierarchy();
+       }
+   }
    draw() {
 
        //update time to wait aka speed of replay
@@ -386,7 +586,7 @@ export class Drawer {
        //the timeout is set after one update 30 ms
        setTimeout(()=>{
                // draw hierarchy
-              // this.drawDendrogram();
+               this.drawDendrogram();
                //change the time frame text
                this.svgContainer.select('.frame-text')
                    .text(Math.floor(this.indexTime / 1500) % 60 + ':' + Math.floor(this.indexTime / parameters['fps']) % 60 + '::' + this.indexTime % parameters['fps']);
@@ -845,203 +1045,7 @@ export class Drawer {
            timeToWait);
    }
 
-   drawDendrogram() {
-       // get the active dendrogram
-       //id = $('.show-dendrogram.btn-primary').attr('data');
-       // if data is avaiable draw hierarchy clusters and a button is active selcted
-       if (!$.isEmptyObject(networkHierarchy) && this.id) {
-           // get the data and transform it
-           let treeData = networkHierarchy['h' + this.id][this.indexTime];
-           let nodes = d3.hierarchy(treeData, function(d) {
-               return d.children;
-           });
-           // skip the root node
-           nodes = nodes.children[0];
-           // collapse the tree
-           nodes.children.forEach(collapse);
 
-           // maps the node data to the tree layout
-           nodes = treemap(nodes);
-           console.log(nodes);
-
-           // hide if no network is choosen
-           if ($('.show-dendrogram.btn-primary').length) {
-
-               // set the new slider max
-               $('#dendrogram-panel-level-slider')
-                   .slider('option', 'max', (nodes['height'] - 1))
-                   .slider('value', hierarchyLevels['h' + this.id]);
-
-               // DATA JOIN - links (edges)
-               let link = this.zoomGroup
-                   .selectAll('path.link')
-                   .data(nodes.descendants().slice(1));
-
-               // ENTER
-               link
-                   .enter()
-                   .append('path')
-                   .attr('class', 'link')
-                   .attr('d', diagonalLines);
-
-               // Transition links to their new position.
-               link
-                   .attr('d', diagonalLines);
-
-               // EXIT
-               link.exit()
-                   .remove();
-
-               // DATA JOIN - nodes
-               // adds each node as a group
-               let node = this.zoomGroup
-                   .selectAll('.node')
-                   .data(nodes.descendants());
-
-               // add the groups to the dendgrogram
-               var nodeEnter = node.enter()
-                   .append('g')
-                   .attr('class', function(d) {
-                       return 'node' +
-                           (d.children ? ' node--internal' : ' node--leaf');
-                   })
-                   .attr('transform', function(d) {
-                       return 'translate(' + d.x + ',' + d.y + ')';
-                   });
-
-               // ENTER - append for each group a node (circle)
-               // with highlighting for the active choosen level
-               nodeEnter.append('circle')
-                   .attr('r', (d)=>{
-                       if (d['depth'] === hierarchyLevels['h' + this.id]) {
-                           return 40 + d.data.name.length;
-                       } else {
-                           return 20 + d.data.name.length;
-                       }
-                   })
-                   .attr('class', (d)=>{
-                       if (d['depth'] === hierarchyLevels['h' + this.id]) {
-                           return 'active-level';
-                       }
-                   })
-                   .attr('id', (d)=>{
-                       return 'h' + d['data']['name'].toString().hashCode();
-                   })
-                   // TODO find a nice function for the on click method
-                   .on('click', click)
-                   .on('mouseover', function(d) {
-                       // tooltip position and text
-                       tooltipDiv
-                           .style('left', (d3.event.pageX + 5) + 'px')
-                           .style('top', (d3.event.pageY + 5) + 'px')
-                           .style('opacity', 1);
-                       tooltipDiv.select('.tooltip-span').html(d['data']['name'].toString());
-                       // add highlight in the spatial view
-                       // the undion of the paths makes this complicated
-                       addHighlightSpatialView(d['data']['name']);
-                   })
-                   .on('mouseout', function() {
-                       tooltipDiv.transition()
-                           .duration(500)
-                           .style('opacity', 0);
-                       // remove highlight in the spatial view
-                       removeHighlightSpatialView();
-                   });
-
-               // add the text - # number of animals in the cluster
-               nodeEnter.append('text')
-                   .attr('class', 'dendrogram-text')
-                   .attr('x', 150)
-                   .attr('y', -150)
-                   .text((d)=>{
-                       return d.data.name.length;
-                   });
-
-               // UPDATE -- update the groups
-               nodeEnter
-                   .attr('transform', (d)=>{
-                       return 'translate(' + d.x + ',' + d.y + ')';
-                   });
-
-               // updae the node and circles
-               // with active-level function to highlight which level is chosen
-               node
-                   .attr('transform', (d)=>{
-                       return 'translate(' + d.x + ',' + d.y + ')';
-                   })
-                   .select('circle')
-                   .attr('r', (d)=>{
-                       if (d['depth'] === hierarchyLevels['h' +this.id]) {
-                           return 40 + d.data.name.length;
-                       } else {
-                           return 20 + d.data.name.length;
-                       }
-                   })
-                   .attr('class', (d)=> {
-                       if (d['depth'] === hierarchyLevels['h' +this.id]) {
-                           // console.log('active-level');
-                           // console.log(('h' + d['data']['name'].toString().hashCode()));
-                           return 'active-level';
-                       } else {
-                           return '';
-                       }
-                   })
-                   .attr('id', (d)=>{
-                       return 'h' + d['data']['name'].toString().hashCode();
-                   });
-
-               // update the text of number of entities
-               node.select('text')
-                   .text((d)=>{
-                       return d.data.name.length;
-                   });
-
-               // EXIT
-               node.exit()
-                   .remove();
-
-               // color the dendrogram nodes using the standardDeviation in the cluster
-               if (Object.keys(hierarchyGroupStdev).length) {
-                   // show the legend for the coloring
-                   // console.log(hierarchyGroupStdev);
-                   // TODO legend here
-                   // console.log('JUMPS HERE');
-                   if ($('#dendrogram-legend').css('display') == 'none') {
-                       $('#dendrogram-legend').show();
-                   }
-                   // IMPORTANT - async problems
-                   // TODO solve this - very slow
-                   setTimeout(()=>{
-                       node.select('circle')
-                           .style('fill', function(d) {
-                               // console.log(hierarchyGroupStdev);
-                               // console.log(('h' + d['data']['name'].toString().hashCode()));
-                               // console.log(('h' + d['data']['name'].toString().hashCode()) in hierarchyGroupStdev)
-                               // color the nodes by calculating the standardDeviation
-                               // for each cluster
-                               // only active is show in cluster is choosen
-                               if (('h' + d['data']['name'].toString().hashCode()) in hierarchyGroupStdev) {
-                                   // console.log('hello');
-                                   // console.log(standardDeviation(hierarchyGroupStdev[('h' + d['data']['name'].toString().hashCode())]));
-                                   return standardDeviationColorScale(standardDeviation(hierarchyGroupStdev[('h' + d['data']['name'].toString().hashCode())]));
-                               } else if (d['depth'] !== hierarchyLevels['h' +this.id]) {
-                                   return '';
-                               } else {
-                                   return '#000';
-                               }
-                           });
-                   }, 250);
-               } else if ($('#dendrogram-legend').css('display') !== 'none') {
-                   $('#dendrogram-legend').hide();
-               }
-           }
-       }
-
-       if (!$.isEmptyObject(networkHierarchy)) {
-           // draw the hierarchy in spatial view
-           drawHierarchy();
-       }
-   }
    cp_listener() {
 
        /**
@@ -1631,46 +1635,10 @@ export class Drawer {
    }
 
    h_listeners() {
-     function initShowDendrogramListener(id) {
 
-         $('#show-dendrogram-' + id).click(function(){
-           console.log('dendro clicked');
-             let clickedButtonID = $(this).attr('id');
-             // iterate over all buttons and custom highlight just one or none
-             $('.show-dendrogram').each((i, button)=>{
-                 // active found button
-                 if ($(button).attr('id') === clickedButtonID && $(button).hasClass('btn-primary') === false) {
-                     $(button).addClass('btn-primary');
-                     $(button).find('#btn-left').hide();
-                     $(button).find('#btn-right').show();
-                     // TODO add here a resize of the main vis
-                     // $('#dendrogram-panel').insertAfter($(this));
-                 } // remove highlight
-                 else {
-                     $(button).removeClass('btn-primary');
-                     $(button).find('#btn-left').show();
-                     $(button).find('#btn-right').hide();
-                 }
-             });
-
-             // show dendrogram
-             if ($('.show-dendrogram.btn-primary').length) {
-                 $('#dendrogram-panel').show();
-             } else {
-                 $('#dendrogram-panel').hide();
-             }
-             if (!$('#play-button').hasClass('active')) {
-                 //go back one second and draw the next frame
-                 //this applys the changes
-                 //this.decIndexTime();
-                 //this.draw();
-                 //this.drawDendrogram();
-             }
-         });
-     }
-       $('.hiearchy-checkbox').on('change', function() {
+       $('.hiearchy-checkbox').on('change', ()=>{
            console.log('check');
-           let checkbox = $(this);
+           let checkbox = $('.hiearchy-checkbox');
            console.log(checkbox);
            let id = checkbox.attr('data');
            let name = checkbox.attr('name');
@@ -1683,7 +1651,46 @@ export class Drawer {
                getNetworkHierarchyData(id);
 
                addHierarchyButton(id, name);
-               initShowDendrogramListener(id);
+               $('#show-dendrogram-' + id).click(()=>{
+                 console.log('dendro clicked');
+                   let clickedButtonID = $('#show-dendrogram-' + id).attr('id');
+                   // iterate over all buttons and custom highlight just one or none
+                   $('.show-dendrogram').each((i, button)=>{
+                       // active found button
+                       if ($(button).attr('id') === clickedButtonID && $(button).hasClass('btn-primary') === false) {
+                           $(button).addClass('btn-primary');
+                           $(button).find('#btn-left').hide();
+                           $(button).find('#btn-right').show();
+                           // TODO add here a resize of the main vis
+                           // $('#dendrogram-panel').insertAfter($(this));
+                       } // remove highlight
+                       else {
+                           $(button).removeClass('btn-primary');
+                           $(button).find('#btn-left').show();
+                           $(button).find('#btn-right').hide();
+                       }
+                   });
+
+                   // show dendrogram
+                   if ($('.show-dendrogram.btn-primary').length) {
+                       $('#dendrogram-panel').show();
+                       console.log('shows');
+                       this.drawDendrogram();
+                   } else {
+                       $('#dendrogram-panel').hide();
+                       console.log('hides');
+                   }
+                   this.drawDendrogram();
+                   if (!$('#play-button').hasClass('active')) {
+                      console.log('plays');
+
+                       //go back one second and draw the next frame
+                       //this applys the changes
+                       this.decIndexTime();
+                       this.draw();
+                       this.drawDendrogram();
+                   }
+               });
                $('#dendrogram-buttons-div').show();
            }
            // else if ($('.show-dendrogram').length === maxNumberHierarchies) {
