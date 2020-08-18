@@ -17,7 +17,8 @@ import {
     networkAuto,
     setNetworLimit,
     networkLimit,
-    networkHierarchy
+    networkHierarchy,
+    setnetworkColor
     // showNetworkHierarchy,
     // networkID,
     // networkBackground,
@@ -67,6 +68,7 @@ import {
     // networkHierarchyIds,
     // sethierarchyGroupStdev,
     resethierarchyGroupStdev,
+    removeHierarchyButton,
     Dendrogram
 } from '../hierarchy.js';
 
@@ -1951,7 +1953,7 @@ export class SpatialView extends Drawer{
       this.md_listeners();
       this.n_listeners();
       this.h_listeners();
-      //var dendrogram = new Dendrogram();
+      var dendrogram = new Dendrogram();
       makeResizable(this.tankHeight, this.tankWidth);
       defaultConfig();
       // start the animation

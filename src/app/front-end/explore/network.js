@@ -100,7 +100,7 @@ export function setnetworkColor(network_id) {
     } else {
         networkColor = {};
     }
-    changeHierarchyLegend();
+    //changeHierarchyLegend();
 }
 
 /**

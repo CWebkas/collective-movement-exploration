@@ -70,10 +70,12 @@ export let colors = ['#7fc97f', '#386cb0', '#e7298a', '#ff9900'];
 
 export class Dendrogram extends Drawer{
   constructor(){
+    super();
     this.initDendrogram()
   }
 
   initDendrogram() {
+    console.log('INITED');
       // constanct factors for the dendgrogram
       let margin = 20,
           width = 5000,
