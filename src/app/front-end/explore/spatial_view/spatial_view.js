@@ -386,7 +386,7 @@ export class Drawer {
        //the timeout is set after one update 30 ms
        setTimeout(()=>{
                // draw hierarchy
-               this.drawDendrogram();
+              // this.drawDendrogram();
                //change the time frame text
                this.svgContainer.select('.frame-text')
                    .text(Math.floor(this.indexTime / 1500) % 60 + ':' + Math.floor(this.indexTime / parameters['fps']) % 60 + '::' + this.indexTime % parameters['fps']);
@@ -1036,6 +1036,7 @@ export class Drawer {
                }
            }
        }
+
        if (!$.isEmptyObject(networkHierarchy)) {
            // draw the hierarchy in spatial view
            drawHierarchy();
@@ -1628,49 +1629,49 @@ export class Drawer {
        });
 
    }
-   initShowDendrogramListener(id) {
 
-       $('#show-dendrogram-' + id).click(function(){
-         console.log('dendro clicked');
-           let clickedButtonID = $(this).attr('id');
-           // iterate over all buttons and custom highlight just one or none
-           $('.show-dendrogram').each((i, button)=>{
-               // active found button
-               if ($(button).attr('id') === clickedButtonID && $(button).hasClass('btn-primary') === false) {
-                   $(button).addClass('btn-primary');
-                   $(button).find('#btn-left').hide();
-                   $(button).find('#btn-right').show();
-                   // TODO add here a resize of the main vis
-                   // $('#dendrogram-panel').insertAfter($(this));
-               } // remove highlight
-               else {
-                   $(button).removeClass('btn-primary');
-                   $(button).find('#btn-left').show();
-                   $(button).find('#btn-right').hide();
-               }
-           });
-
-           // show dendrogram
-           if ($('.show-dendrogram.btn-primary').length) {
-               $('#dendrogram-panel').show();
-           } else {
-               $('#dendrogram-panel').hide();
-           }
-           if (!$('#play-button').hasClass('active')) {
-               //go back one second and draw the next frame
-               //this applys the changes
-               //this.decIndexTime();
-               //this.draw();
-               this.drawDendrogram();
-           }
-       });
-   }
    h_listeners() {
+     function initShowDendrogramListener(id) {
 
-       $('.hiearchy-checkbox').on('change', ()=>{
+         $('#show-dendrogram-' + id).click(function(){
+           console.log('dendro clicked');
+             let clickedButtonID = $(this).attr('id');
+             // iterate over all buttons and custom highlight just one or none
+             $('.show-dendrogram').each((i, button)=>{
+                 // active found button
+                 if ($(button).attr('id') === clickedButtonID && $(button).hasClass('btn-primary') === false) {
+                     $(button).addClass('btn-primary');
+                     $(button).find('#btn-left').hide();
+                     $(button).find('#btn-right').show();
+                     // TODO add here a resize of the main vis
+                     // $('#dendrogram-panel').insertAfter($(this));
+                 } // remove highlight
+                 else {
+                     $(button).removeClass('btn-primary');
+                     $(button).find('#btn-left').show();
+                     $(button).find('#btn-right').hide();
+                 }
+             });
+
+             // show dendrogram
+             if ($('.show-dendrogram.btn-primary').length) {
+                 $('#dendrogram-panel').show();
+             } else {
+                 $('#dendrogram-panel').hide();
+             }
+             if (!$('#play-button').hasClass('active')) {
+                 //go back one second and draw the next frame
+                 //this applys the changes
+                 //this.decIndexTime();
+                 //this.draw();
+                 //this.drawDendrogram();
+             }
+         });
+     }
+       $('.hiearchy-checkbox').on('change', function() {
            console.log('check');
-           let checkbox = $('.hiearchy-checkbox');
-
+           let checkbox = $(this);
+           console.log(checkbox);
            let id = checkbox.attr('data');
            let name = checkbox.attr('name');
            let checked = checkbox.prop('checked');
@@ -1682,7 +1683,7 @@ export class Drawer {
                getNetworkHierarchyData(id);
 
                addHierarchyButton(id, name);
-               this.initShowDendrogramListener(id);
+               initShowDendrogramListener(id);
                $('#dendrogram-buttons-div').show();
            }
            // else if ($('.show-dendrogram').length === maxNumberHierarchies) {
