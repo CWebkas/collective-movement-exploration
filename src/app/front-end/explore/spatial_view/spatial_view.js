@@ -69,6 +69,8 @@ import {
     // sethierarchyGroupStdev,
     resethierarchyGroupStdev,
     removeHierarchyButton,
+    maxNumberHierarchies,
+    addHierarchyButton,
     Dendrogram
 } from '../hierarchy.js';
 
@@ -1628,7 +1630,8 @@ export class Drawer {
    }
    initShowDendrogramListener(id) {
 
-       $('#show-dendrogram-' + id).click(()=>{
+       $('#show-dendrogram-' + id).click(function(){
+         console.log('dendro clicked');
            let clickedButtonID = $(this).attr('id');
            // iterate over all buttons and custom highlight just one or none
            $('.show-dendrogram').each((i, button)=>{
@@ -1656,22 +1659,25 @@ export class Drawer {
            if (!$('#play-button').hasClass('active')) {
                //go back one second and draw the next frame
                //this applys the changes
-               this.decIndexTime();
-               this.draw();
+               //this.decIndexTime();
+               //this.draw();
                this.drawDendrogram();
            }
        });
    }
    h_listeners() {
 
-       $('.hiearchy-checkbox').on('change', ()=> {
-           let checkbox = $(this);
+       $('.hiearchy-checkbox').on('change', ()=>{
+           console.log('check');
+           let checkbox = $('.hiearchy-checkbox');
 
            let id = checkbox.attr('data');
            let name = checkbox.attr('name');
            let checked = checkbox.prop('checked');
+           console.log(checked);
 
            if (checked && $('.show-dendrogram').length < maxNumberHierarchies) {
+
                disablePlayButton();
                getNetworkHierarchyData(id);
 
@@ -1718,7 +1724,7 @@ export class Drawer {
        /**
         * Visualize the network only in the choosen hierarchy
         */
-       $('.network-hierarchy-checkbox').on('change', ()=>{
+       $('.network-hierarchy-checkbox').on('change', function(){
            // get the info for the clicked button
            let checkbox = $(this);
 
@@ -1740,6 +1746,7 @@ export class Drawer {
       * Network buttons clicked - get the data
       */
      $('#networks-modal-body button').click(function() {
+         console.log('network clicked');
          let network_id = $(this).attr('data');
 
          // add the name of the choosen network to the Network modal
