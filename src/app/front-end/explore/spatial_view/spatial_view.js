@@ -2182,6 +2182,7 @@ export class SpatialView extends Drawer{
       this.md_listeners();
       this.n_listeners();
       this.h_listeners();
+      //var dendrogram = new Dendrogram(swarmData);
       this.initDendrogram();
       //console.log(dendrogram);
       makeResizable(this.tankHeight, this.tankWidth);
