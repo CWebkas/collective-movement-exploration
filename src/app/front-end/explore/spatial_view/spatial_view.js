@@ -574,11 +574,13 @@ export class Drawer {
 
        var collapse = (d)=>{
            //console.log(this.hierarchyLevels);
-           if (d.children && d.depth <= this.hierarchyLevels['h' + this.id]) {
+           //console.log(d.children);
+           //if (d.children && d.depth <= this.hierarchyLevels['h' + this.id])
+           if (d.children && d.depth <= 2) {
                d._children = d.children;
                d._children.forEach(collapse);
            } else {
-               d.children = null;
+               d.children = 0;
            }
        }
        if (!$.isEmptyObject(networkHierarchy) && this.id) {
@@ -591,8 +593,10 @@ export class Drawer {
            });
            // skip the root node
            nodes = nodes.children[0];
+
            // collapse the tree
-           //nodes.children.forEach(collapse);
+           console.log(nodes.children);
+           nodes.children.forEach(collapse);
            let margin = 20,
                width = 5000,
                height = 5000;
@@ -2182,8 +2186,8 @@ export class SpatialView extends Drawer{
       this.md_listeners();
       this.n_listeners();
       this.h_listeners();
-      //var dendrogram = new Dendrogram(swarmData);
-      this.initDendrogram();
+      var dendrogram = new Dendrogram(swarmData);
+      //this.initDendrogram();
       //console.log(dendrogram);
       makeResizable(this.tankHeight, this.tankWidth);
       defaultConfig();
@@ -2228,7 +2232,7 @@ export class SpatialView extends Drawer{
       initDendrogramLegend();
 
       // append the zoom group to the svg
-      this.zoomGroup = svg.append('g')
+      let zoomer = svg.append('g')
           .attr('transform', 'translate(' + margin + ',' + margin + ')')
           .append('svg:g');
 
