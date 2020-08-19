@@ -430,8 +430,8 @@ export class Drawer {
        $('#dendrogram-panel-name').text(name);
 
        // set slider and  text value
-       $('#dendrogram-panel-level-slider').val(this.hierarchyLevels['h' + id]);
-       $('#dendrogram-panel-level-text').text(this.hierarchyLevels['h' + id]);
+       $('#dendrogram-panel-level-slider').val(this.hierarchyLevels['h' + this.id]);
+       $('#dendrogram-panel-level-text').text(this.hierarchyLevels['h' + this.id]);
 
    }
    getHierarchyVertices(hierarchies) {
@@ -570,12 +570,11 @@ export class Drawer {
        // if data is avaiable draw hierarchy clusters and a button is active selcted
        //console.log('tries draw');
        //console.log(networkHierarchy);
-       let hierarchyLevels = this.hierarchyLevels;
-       let id = this.id;
+       //console.log(this.hierarchyLevels);
 
-       function collapse(d) {
+       var collapse = (d)=>{
            //console.log(this.hierarchyLevels);
-           if (d.children && d.depth <= hierarchyLevels['h' + id]) {
+           if (d.children && d.depth <= this.hierarchyLevels['h' + this.id]) {
                d._children = d.children;
                d._children.forEach(collapse);
            } else {
@@ -586,14 +585,14 @@ export class Drawer {
            //console.log('draws');
            // get the data and transform it
            let treeData = networkHierarchy['h' + this.id][this.indexTime];
-           console.log(treeData);
+           //console.log(treeData);
            let nodes = d3.hierarchy(treeData, function(d) {
                return d.children;
            });
            // skip the root node
            nodes = nodes.children[0];
            // collapse the tree
-           nodes.children.forEach(collapse);
+           //nodes.children.forEach(collapse);
            let margin = 20,
                width = 5000,
                height = 5000;
