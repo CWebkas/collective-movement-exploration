@@ -119,7 +119,7 @@ export class Dendrogram extends Drawer{
           .size([(height - 10 * margin), (width - 10 * margin)]);
 
       // set the spatial view - needed to add the clustering to the spatial view window
-      spatialView = d3.select('.tank');
+      this.spatialView = d3.select('.tank');
 
       // init dendrogram slider
       // initialize the Network slider
@@ -129,7 +129,7 @@ export class Dendrogram extends Drawer{
               min: 2,
               max: 2,
               step: 1,
-              value: hierarchyLevels['h0'],
+              value: this.hierarchyLevels['h0'],
               slide: function(event, ui) {
                   let id = $('.show-dendrogram.btn-primary').attr('data');
                   setHierarchyLevel(id, ui.value);
@@ -165,7 +165,7 @@ export class Dendrogram extends Drawer{
           .attr('height', legendHeight);
 
       // add pattern for striped background of intersections etc.
-      spatialView.append('defs')
+      this.spatialView.append('defs')
           .append('svg:pattern')
           .attr('id', 'striped')
           .attr('patternUnits', 'userSpaceOnUse')
@@ -604,14 +604,14 @@ export function addHighlightSpatialView(animals) {
     // iterate through the objects in the cluster
     // get the points and highlight the animals
     for (let i = 0; i < animals.length; i++) {
-        let tmpAnimal = spatialView.select('#animal-' + animals[i]);
+        let tmpAnimal = this.spatialView.select('#animal-' + animals[i]);
         let point = tmpAnimal.data()[0]['p'];
         vertices.push([point[0], -point[1]]);
 
         tmpAnimal.classed('animal-highlight', true);
     }
     // add a polygon hull in the spatial view
-    spatialView.append('path')
+    this.spatialView.append('path')
         .attr('class', 'highlight-hierarchy')
         .attr('d', ('M' + d3.polygonHull(vertices).join('L') + 'Z'));
 }
