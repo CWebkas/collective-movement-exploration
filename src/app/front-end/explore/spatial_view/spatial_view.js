@@ -586,6 +586,7 @@ export class Drawer {
            //console.log('draws');
            // get the data and transform it
            let treeData = networkHierarchy['h' + this.id][this.indexTime];
+           console.log(treeData);
            let nodes = d3.hierarchy(treeData, function(d) {
                return d.children;
            });
@@ -602,7 +603,7 @@ export class Drawer {
 
            // maps the node data to the tree layout
            nodes = treemap(nodes);
-           console.log(nodes);
+           //console.log(nodes);
 
            // hide if no network is choosen
            if ($('.show-dendrogram.btn-primary').length) {
